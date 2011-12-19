@@ -60,7 +60,7 @@ LOCAL_CFLAGS := $(mke2fs_cflags) $(mke2fs_cflags_linux)
 LOCAL_SYSTEM_SHARED_LIBRARIES := $(mke2fs_system_shared_libraries)
 LOCAL_SHARED_LIBRARIES := $(mke2fs_shared_libraries)
 LOCAL_MODULE := mke2fs
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -152,7 +152,7 @@ LOCAL_CFLAGS := $(tune2fs_cflags)
 LOCAL_SHARED_LIBRARIES := $(tune2fs_shared_libraries)
 LOCAL_SYSTEM_SHARED_LIBRARIES := $(tune2fs_system_shared_libraries)
 LOCAL_MODULE := tune2fs
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng
 
 include $(BUILD_EXECUTABLE)
 

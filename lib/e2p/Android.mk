@@ -59,7 +59,7 @@ LOCAL_CFLAGS := $(libext2_e2p_cflags)
 LOCAL_SYSTEM_SHARED_LIBRARIES := $(libext2_e2p_system_shared_libraries)
 LOCAL_PRELINK_MODULE := false
 LOCAL_MODULE := libext2_e2p
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng
 
 include $(BUILD_SHARED_LIBRARY)
 

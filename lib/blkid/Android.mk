@@ -57,7 +57,7 @@ LOCAL_C_INCLUDES := $(libext2_blkid_c_includes)
 LOCAL_CFLAGS := $(libext2_blkid_cflags) $(libext2_blkid_cflags_linux)
 LOCAL_PRELINK_MODULE := false
 LOCAL_MODULE := libext2_blkid
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng
 
 include $(BUILD_SHARED_LIBRARY)
 
