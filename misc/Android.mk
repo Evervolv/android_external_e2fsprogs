@@ -240,7 +240,7 @@ LOCAL_CFLAGS := $(badblocks_cflags)
 LOCAL_SHARED_LIBRARIES := $(badblocks_shared_libraries)
 LOCAL_SYSTEM_SHARED_LIBRARIES := $(badblocks_system_shared_libraries)
 LOCAL_MODULE := badblocks
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng
 
 include $(BUILD_EXECUTABLE)
 
