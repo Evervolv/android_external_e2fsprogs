@@ -40,7 +40,9 @@ libext2_uuid_cflags := -O2 -g -W -Wall \
 	-DHAVE_TYPE_SSIZE_T \
 	-DHAVE_SYS_TIME_H \
         -DHAVE_SYS_PARAM_H \
-	-DHAVE_SYSCONF
+	-DHAVE_SYSCONF \
+	-Wno-unused-function \
+	-Wno-unused-parameter
 
 libext2_uuid_system_shared_libraries := libc
 
