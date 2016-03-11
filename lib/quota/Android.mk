@@ -33,7 +33,8 @@ libext2_quota_cflags := -O2 -g -W -Wall \
 	-DHAVE_TYPE_SSIZE_T \
 	-DHAVE_SYS_TIME_H \
         -DHAVE_SYS_PARAM_H \
-	-DHAVE_SYSCONF
+	-DHAVE_SYSCONF \
+	-Wno-unused-parameter
 
 libext2_quota_shared_libraries := libext2fs libext2_com_err
 

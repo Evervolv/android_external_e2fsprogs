@@ -39,7 +39,8 @@ libext2_profile_cflags := -O2 -g -W -Wall \
 	-DHAVE_SYS_TIME_H \
 	-DHAVE_SYS_PARAM_H \
 	-DHAVE_SYSCONF \
-	-DDISABLE_BACKTRACE=1
+	-DDISABLE_BACKTRACE=1 \
+	-Wno-unused-parameter
 
 include $(CLEAR_VARS)
 
