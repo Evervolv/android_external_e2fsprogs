@@ -139,7 +139,8 @@ e2fsck_cflags := -O2 -g -W -Wall -fno-strict-aliasing \
 	-DHAVE_SYS_TIME_H \
 	-DHAVE_SYS_PARAM_H \
 	-DHAVE_SYSCONF \
-	-DDISABLE_BACKTRACE=1
+	-DDISABLE_BACKTRACE=1 \
+	-Wno-missing-field-initializers
 
 include $(CLEAR_VARS)
 
