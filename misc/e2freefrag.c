@@ -11,6 +11,7 @@
  * License version 2.
  * %End-Header%
  */
+#include "config.h"
 #include <stdio.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -214,7 +215,7 @@ static errcode_t get_chunk_info(ext2_filsys fs, struct chunk_info *info,
 
 static void close_device(char *device_name, ext2_filsys fs)
 {
-	int retval = ext2fs_close(fs);
+	int retval = ext2fs_close_free(&fs);
 
 	if (retval)
 		com_err(device_name, retval, "while closing the filesystem.\n");
@@ -276,6 +277,7 @@ int main(int argc, char *argv[])
 #ifdef DEBUGFS
 	if (check_fs_open(argv[0]))
 		return;
+	reset_getopt();
 #else
 	char *device_name;
 
