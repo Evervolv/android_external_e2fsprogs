@@ -6,6 +6,7 @@ libext2fs_src_files := \
 	alloc_sb.c \
 	alloc_stats.c \
 	alloc_tables.c \
+	atexit.c \
 	badblocks.c \
 	bb_inode.c \
 	bitmaps.c \
@@ -16,11 +17,13 @@ libext2fs_src_files := \
 	block.c \
 	bmap.c \
 	check_desc.c \
-	closefs.c \
 	crc16.c \
+	crc32c.c \
 	csum.c \
+	closefs.c \
 	dblist.c \
 	dblist_dir.c \
+	digest_encode.c \
 	dirblock.c \
 	dirhash.c \
 	dir_iterate.c \
@@ -28,29 +31,33 @@ libext2fs_src_files := \
 	expanddir.c \
 	ext_attr.c \
 	extent.c \
+	fallocate.c \
 	fileio.c \
 	finddev.c \
 	flushb.c \
 	freefs.c \
 	gen_bitmap.c \
 	gen_bitmap64.c \
+	get_num_dirs.c \
 	get_pathname.c \
 	getsize.c \
 	getsectsize.c \
 	i_block.c \
 	icount.c \
+	imager.c \
 	ind_block.c \
 	initialize.c \
 	inline.c \
+	inline_data.c \
 	inode.c \
 	io_manager.c \
 	ismounted.c \
 	link.c \
 	llseek.c \
 	lookup.c \
+	mmp.c \
 	mkdir.c \
 	mkjournal.c \
-	mmp.c \
 	namei.c \
 	native.c \
 	newdir.c \
@@ -58,19 +65,20 @@ libext2fs_src_files := \
 	progress.c \
 	punch.c \
 	qcow2.c \
+	rbtree.c \
 	read_bb.c \
 	read_bb_file.c \
 	res_gdt.c \
 	rw_bitmaps.c \
+	sha256.c \
+	sha512.c \
 	swapfs.c \
 	symlink.c \
-	tdb.c \
 	undo_io.c \
 	unix_io.c \
 	unlink.c \
 	valid_blk.c \
-	version.c \
-	rbtree.c
+	version.c
 
 # get rid of this?!
 libext2fs_src_files += test_io.c
@@ -93,34 +101,7 @@ libext2fs_system_static_libraries := libc
 
 libext2fs_c_includes := external/e2fsprogs/lib
 
-libext2fs_cflags := -O2 -g -W -Wall \
-	-DHAVE_UNISTD_H \
-	-DHAVE_ERRNO_H \
-	-DHAVE_NETINET_IN_H \
-	-DHAVE_SYS_IOCTL_H \
-	-DHAVE_SYS_MMAN_H \
-	-DHAVE_SYS_MOUNT_H \
-	-DHAVE_SYS_RESOURCE_H \
-	-DHAVE_SYS_SELECT_H \
-	-DHAVE_SYS_STAT_H \
-	-DHAVE_SYS_TYPES_H \
-	-DHAVE_STDLIB_H \
-	-DHAVE_STRDUP \
-	-DHAVE_MMAP \
-	-DHAVE_UTIME_H \
-	-DHAVE_GETPAGESIZE \
-	-DHAVE_EXT2_IOCTLS \
-	-DHAVE_TYPE_SSIZE_T \
-	-DHAVE_SYS_TIME_H \
-        -DHAVE_SYS_PARAM_H \
-	-DHAVE_SYSCONF \
-	-Wno-unused-parameter
-
-libext2fs_cflags_linux := \
-	-DHAVE_LINUX_FD_H \
-	-DHAVE_SYS_PRCTL_H \
-	-DHAVE_LSEEK64 \
-	-DHAVE_LSEEK64_PROTOTYPE
+libext2fs_cflags := -O2 -g -W -Wall
 
 include $(CLEAR_VARS)
 
@@ -129,7 +110,7 @@ LOCAL_SYSTEM_SHARED_LIBRARIES := $(libext2fs_system_shared_libraries)
 LOCAL_SHARED_LIBRARIES := $(libext2fs_shared_libraries)
 LOCAL_C_INCLUDES := $(libext2fs_c_includes)
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(libext2fs_c_includes)
-LOCAL_CFLAGS := $(libext2fs_cflags) $(libext2fs_cflags_linux)
+LOCAL_CFLAGS := $(libext2fs_cflags)
 LOCAL_MODULE := libext2fs
 LOCAL_MODULE_TAGS := optional
 
@@ -153,11 +134,7 @@ LOCAL_SRC_FILES := $(libext2fs_src_files)
 LOCAL_SHARED_LIBRARIES := $(addsuffix -host, $(libext2fs_shared_libraries))
 LOCAL_C_INCLUDES := $(libext2fs_c_includes)
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(libext2fs_c_includes)
-ifeq ($(HOST_OS),linux)
-LOCAL_CFLAGS := $(libext2fs_cflags) $(libext2fs_cflags_linux)
-else
 LOCAL_CFLAGS := $(libext2fs_cflags)
-endif
 LOCAL_MODULE := libext2fs-host
 LOCAL_MODULE_TAGS := optional
 

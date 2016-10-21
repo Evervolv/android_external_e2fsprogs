@@ -16,9 +16,7 @@
  * express or implied warranty.
  */
 
-#if HAVE_SECURE_GETENV
-#define _GNU_SOURCE
-#endif
+#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
