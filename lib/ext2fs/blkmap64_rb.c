@@ -22,6 +22,7 @@
 #if HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
+#include <linux/types.h>
 
 #include "ext2_fs.h"
 #include "ext2fsP.h"
