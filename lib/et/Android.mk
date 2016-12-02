@@ -42,5 +42,17 @@ LOCAL_C_INCLUDES := $(libext2_com_err_c_includes)
 LOCAL_CFLAGS := $(libext2_com_err_cflags)
 LOCAL_MODULE := libext2_com_err-host
 LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_HOST_OS := darwin linux windows
 
 include $(BUILD_HOST_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := $(libext2_com_err_src_files)
+LOCAL_C_INCLUDES := $(libext2_com_err_c_includes)
+LOCAL_CFLAGS := $(libext2_com_err_cflags)
+LOCAL_MODULE := libext2_com_err-host
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_HOST_OS := darwin linux windows
+
+include $(BUILD_HOST_STATIC_LIBRARY)
