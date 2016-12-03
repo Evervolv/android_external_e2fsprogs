@@ -640,7 +640,6 @@ static errcode_t unixfd_open(const char *str_fd, int flags,
 	int fd_flags;
 
 	fd = atoi(str_fd);
-#if defined(HAVE_FCNTL)
 	fd_flags = fcntl(fd, F_GETFD);
 	if (fd_flags == -1)
 		return -EBADF;
@@ -654,7 +653,6 @@ static errcode_t unixfd_open(const char *str_fd, int flags,
 	if (fd_flags & O_DIRECT)
 		flags |= IO_FLAG_DIRECT_IO;
 #endif
-#endif  /* HAVE_FCNTL */
 
 	return unix_open_channel(str_fd, fd, flags, channel, unixfd_io_manager);
 }
@@ -952,9 +950,7 @@ static errcode_t unix_flush(io_channel channel)
 #ifndef NO_IO_CACHE
 	retval = flush_cached_blocks(channel, data, 0);
 #endif
-#ifdef HAVE_FSYNC
 	fsync(data->dev);
-#endif
 	return retval;
 }
 

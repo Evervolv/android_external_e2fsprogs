@@ -1094,7 +1094,6 @@ AC_CHECK_FUNCS(m4_flatten([
 	fallocate
 	fallocate64
 	fchown
-	fcntl
 	fdatasync
 	fstat64
 	ftruncate64
