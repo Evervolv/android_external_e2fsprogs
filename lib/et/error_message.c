@@ -35,9 +35,7 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#if HAVE_FCNTL
 #include <fcntl.h>
-#endif
 #if HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
@@ -198,10 +196,8 @@ oops:
  */
 static char *safe_getenv(const char *arg)
 {
-#if !defined(_WIN32)
 	if ((getuid() != geteuid()) || (getgid() != getegid()))
 		return NULL;
-#endif
 #if HAVE_PRCTL
 	if (prctl(PR_GET_DUMPABLE, 0, 0, 0, 0) == 0)
 		return NULL;
@@ -253,13 +249,11 @@ static void init_debug(void)
 		debug_f = fopen("/dev/tty", "a");
 	if (debug_f) {
 		fd = fileno(debug_f);
-#if defined(HAVE_FCNTL)
 		if (fd >= 0) {
 			flags = fcntl(fd, F_GETFD);
 			if (flags >= 0)
 				fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 		}
-#endif
 	} else
 		debug_mask = DEBUG_INIT;
 
