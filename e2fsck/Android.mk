@@ -194,6 +194,18 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(e2fsck_src_files)
 LOCAL_C_INCLUDES := $(e2fsck_c_includes)
 LOCAL_CFLAGS := $(e2fsck_cflags)
+LOCAL_STATIC_LIBRARIES := $(e2fsck_system_shared_libraries) $(e2fsck_shared_libraries) libext2fs
+LOCAL_MODULE := e2fsck_static
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_PATH := $(PRODUCT_OUT)/install/bin
+LOCAL_FORCE_STATIC_EXECUTABLE := true
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := $(e2fsck_src_files)
+LOCAL_C_INCLUDES := $(e2fsck_c_includes)
+LOCAL_CFLAGS := $(e2fsck_cflags)
 LOCAL_SHARED_LIBRARIES := $(addsuffix -host, $(e2fsck_shared_libraries))
 LOCAL_MODULE := e2fsck_host
 LOCAL_MODULE_STEM := e2fsck
