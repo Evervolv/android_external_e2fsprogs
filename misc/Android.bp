@@ -31,17 +31,38 @@ cc_binary {
         "mk_hugefiles.c",
         "default_profile.c",
     ],
-    cflags: ["-W", "-Wall", "-Wno-macro-redefined"],
-    shared_libs: [
-        "libext2fs",
-        "libext2_blkid",
-        "libext2_misc",
-        "libext2_uuid",
-        "libext2_quota",
-        "libext2_com_err",
-        "libext2_e2p",
+    required: [
+        "mke2fs.conf",
     ],
-    system_shared_libs: ["libc"],
+    cflags: ["-W", "-Wall", "-Wno-macro-redefined"],
+    target: {
+        host: {
+            static_libs: [
+                "libext2_blkid",
+                "libext2_misc",
+                "libext2_uuid",
+                "libext2_quota",
+                "libext2_com_err",
+                "libext2_e2p",
+                "libext2fs",
+                "libsparse",
+                "libbase",
+                "libz",
+            ],
+        },
+        android: {
+            shared_libs: [
+                "libext2fs",
+                "libext2_blkid",
+                "libext2_misc",
+                "libext2_uuid",
+                "libext2_quota",
+                "libext2_com_err",
+                "libext2_e2p",
+            ],
+        },
+    },
+    stl: "libc++_static",
     include_dirs: ["external/e2fsprogs/e2fsck"],
 }
 
