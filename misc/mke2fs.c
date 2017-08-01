@@ -43,7 +43,9 @@ extern int optind;
 #ifdef HAVE_ERRNO_H
 #include <errno.h>
 #endif
+#ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
+#endif
 #include <libgen.h>
 #include <limits.h>
 #include <blkid/blkid.h>
@@ -1896,10 +1898,15 @@ profile_error:
 		dev_size = fs_blocks_count;
 		retval = 0;
 	} else
+#ifndef _WIN32
 		retval = ext2fs_get_device_size2(device_name,
 						 EXT2_BLOCK_SIZE(&fs_param),
 						 &dev_size);
-
+#else
+		retval = ext2fs_get_device_size(device_name,
+						EXT2_BLOCK_SIZE(&fs_param),
+						&dev_size);
+#endif
 	if (retval && (retval != EXT2_ET_UNIMPLEMENTED)) {
 		com_err(program_name, retval, "%s",
 			_("while trying to determine filesystem size"));
@@ -2820,7 +2827,7 @@ int main (int argc, char *argv[])
 				_("in malloc for android_sparse_params"));
 			exit(1);
 		}
-		snprintf(android_sparse_params, PATH_MAX + 32, "%s:%u:%u",
+		snprintf(android_sparse_params, PATH_MAX + 32, "(%s):%u:%u",
 			 device_name, fs_param.s_blocks_count,
 			 1024 << fs_param.s_log_block_size);
 		retval = ext2fs_initialize(android_sparse_params, flags,
