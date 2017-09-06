@@ -4,7 +4,6 @@ LOCAL_PATH := $(call my-dir)
 # Build statically linked mke2fs for recovery
 mke2fs_src_files := \
        mke2fs.c \
-       util.c \
        mk_hugefiles.c \
        default_profile.c \
        create_inode.c \

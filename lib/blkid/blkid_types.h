@@ -23,6 +23,13 @@ typedef __signed__ long long __s64;
 #ifndef EXT2_ENDIAN_H_
 #define EXT2_ENDIAN_H_
 
+#ifdef __bitwise
+#undef __bitwise
+#endif
+#ifdef __force
+#undef __force
+#endif
+
 #ifdef __CHECKER__
 #define __bitwise		__attribute__((bitwise))
 #define __force			__attribute__((force))
