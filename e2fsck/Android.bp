@@ -66,3 +66,10 @@ cc_binary {
 
     static_libs: e2fsck_libs,
 }
+
+cc_library_static {
+    name: "libe2fsck",
+    defaults: ["e2fsck-defaults"],
+    cflags: ["-Dmain=e2fsck_main"],
+    header_libs: ["libext2-headers"],
+}

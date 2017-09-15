@@ -33,7 +33,7 @@ cc_library {
     export_header_lib_headers: ["libext2-headers"],
 }
 
-cc_library_shared {
+cc_library {
     name: "libext2_profile",
     host_supported: true,
     unique_host_soname: true,

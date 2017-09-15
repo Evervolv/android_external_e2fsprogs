@@ -18,6 +18,7 @@
 #endif
 #include <sys/resource.h>
 
+#ifdef RESOURCE_TRACK
 void init_resource_track(struct resource_track *track, const char *desc,
 			 io_channel channel)
 {
@@ -125,4 +126,4 @@ void print_resource_track(ext2_resize_t rfs, struct resource_track *track,
 skip_io:
 	fflush(stdout);
 }
-
+#endif /* RESOURCE_TRACK */

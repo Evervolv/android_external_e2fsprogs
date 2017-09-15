@@ -101,7 +101,9 @@ errcode_t resize_fs(ext2_filsys fs, blk64_t *new_size, int flags,
 {
 	ext2_resize_t	rfs;
 	errcode_t	retval;
+#ifdef RESOURCE_TRACK
 	struct resource_track	rtrack, overall_track;
+#endif
 
 	/*
 	 * Create the data structure

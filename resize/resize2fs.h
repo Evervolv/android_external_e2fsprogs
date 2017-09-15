@@ -85,6 +85,7 @@ typedef struct ext2_sim_progress *ext2_sim_progmeter;
 #define RESIZE_ENABLE_64BIT		0x0400
 #define RESIZE_DISABLE_64BIT		0x0800
 
+#ifdef RESOURCE_TRACK
 /*
  * This structure is used for keeping track of how much resources have
  * been used for a particular resize2fs pass.
@@ -98,6 +99,7 @@ struct resource_track {
 	unsigned long long bytes_read;
 	unsigned long long bytes_written;
 };
+#endif
 
 /*
  * The core state structure for the ext2 resizer
@@ -170,12 +172,17 @@ extern char *program_name;
 extern errcode_t online_resize_fs(ext2_filsys fs, const char *mtpt,
 				  blk64_t *new_size, int flags);
 
+#ifdef RESOURCE_TRACK
 /* resource_track.c */
 extern void init_resource_track(struct resource_track *track, const char *desc,
 				io_channel channel);
 extern void print_resource_track(ext2_resize_t rfs,
 				 struct resource_track *track,
 				 io_channel channel);
+#else
+#define print_resource_track(track, desc, channel) do { } while (0)
+#define init_resource_track(rfs, track, channel) do { } while (0)
+#endif
 
 /* sim_progress.c */
 extern errcode_t ext2fs_progress_init(ext2_sim_progmeter *ret_prog,

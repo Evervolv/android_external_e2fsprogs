@@ -39,3 +39,13 @@ LOCAL_FORCE_STATIC_EXECUTABLE := true
 
 include $(BUILD_EXECUTABLE)
 
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := $(e2fsdroid_src_files)
+LOCAL_CFLAGS := $(e2fsdroid_cflags) -Dmain=e2fsdroid_main
+LOCAL_STATIC_LIBRARIES := $(e2fsdroid_whole_static_libraries)
+LOCAL_STATIC_LIBRARIES += $(e2fsdroid_static_libraries)
+LOCAL_MODULE := libe2fsdroid
+
+include $(BUILD_STATIC_LIBRARY)
+

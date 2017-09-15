@@ -358,6 +358,10 @@ static void rebuild_extents(e2fsck_t ctx, const char *pass_name, int pr_header)
 	ext2_ino_t		ino = 0;
 	errcode_t		retval;
 
+#ifndef RESOURCE_TRACK
+	(void)pass_name; /* unused */
+#endif
+
 	if (!ext2fs_has_feature_extents(ctx->fs->super) ||
 	    !ext2fs_test_valid(ctx->fs) ||
 	    ctx->invalid_bitmaps) {
