@@ -4,7 +4,6 @@ cc_library {
     name: "libext2_com_err",
     host_supported: true,
     unique_host_soname: true,
-    defaults: ["e2fsprogs-defaults"],
     srcs: [
         "error_message.c",
         "et_name.c",
@@ -13,6 +12,10 @@ cc_library {
         "com_right.c",
     ],
 
+    cflags: [
+        "-W",
+        "-Wall",
+    ],
     target: {
         windows: {
             enabled: true,

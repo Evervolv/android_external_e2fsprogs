@@ -4,7 +4,6 @@ cc_library {
     name: "libext2_e2p",
     host_supported: true,
     unique_host_soname: true,
-    defaults: ["e2fsprogs-defaults"],
     srcs: [
         "feature.c",
         "fgetflags.c",
@@ -30,7 +29,11 @@ cc_library {
         "percent.c",
     ],
 
-    cflags: ["-Wno-error=attributes"],
+    cflags: [
+        "-W",
+        "-Wall",
+        "-Wno-macro-redefined",
+    ],
 
     target: {
         windows: {
