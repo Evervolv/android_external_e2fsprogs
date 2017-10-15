@@ -8,14 +8,9 @@ subdirs = ["android"]
 cc_binary {
     name: "fsstress",
     host_supported: true,
-    defaults: ["e2fsprogs-defaults"],
 
     srcs: ["fsstress.c"],
-    cflags: [
-        "-Wno-error=sign-compare",
-        "-Wno-unused-parameter",
-        "-Wno-unused-result",
-    ],
+    cflags: ["-W", "-Wall", "-Wno-macro-redefined"],
     system_shared_libs: ["libc", "libdl"],
 
     target: {
@@ -31,9 +26,9 @@ cc_binary {
 cc_binary {
     name: "add_ext4_encrypt",
     host_supported: true,
-    defaults: ["e2fsprogs-defaults"],
 
     srcs: ["add_ext4_encrypt.c"],
+    cflags: ["-W", "-Wall", "-Wno-macro-redefined"],
     shared_libs: [
         "libext2fs",
         "libext2_com_err",
