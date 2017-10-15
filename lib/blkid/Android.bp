@@ -4,7 +4,6 @@ cc_library {
     name: "libext2_blkid",
     host_supported: true,
     unique_host_soname: true,
-    defaults: ["e2fsprogs-defaults"],
     srcs: [
         "cache.c",
         "dev.c",
@@ -32,9 +31,8 @@ cc_library {
     },
 
     cflags: [
-        "-Wno-error=attributes",
-        "-Wno-error=pointer-sign",
-        "-Wno-unused-parameter",
+        "-W",
+        "-Wall",
         "-fno-strict-aliasing",
     ],
 

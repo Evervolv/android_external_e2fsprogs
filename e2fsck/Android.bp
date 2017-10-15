@@ -5,7 +5,6 @@
 
 cc_defaults {
     name: "e2fsck-defaults",
-    defaults: ["e2fsprogs-defaults"],
     srcs: [
         "e2fsck.c",
         "super.c",
@@ -35,10 +34,7 @@ cc_defaults {
         "readahead.c",
         "extents.c",
     ],
-    cflags: [
-        "-Wno-sign-compare",
-        "-fno-strict-aliasing"
-    ],
+    cflags: ["-W", "-Wall", "-Wno-macro-redefined", "-fno-strict-aliasing"],
 }
 
 e2fsck_libs = [

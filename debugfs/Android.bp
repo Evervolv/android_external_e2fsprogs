@@ -5,7 +5,6 @@
 
 cc_defaults {
     name: "debugfs-defaults",
-    defaults: ["e2fsprogs-defaults"],
     srcs: [
         "debug_cmds.c",
         "debugfs.c",
@@ -32,7 +31,9 @@ cc_defaults {
         "do_journal.c",
     ],
     cflags: [
-        "-Wno-unused-variable",
+        "-W",
+        "-Wall",
+        "-Wno-macro-redefined",
         "-fno-strict-aliasing",
         "-DDEBUGFS",
     ],
