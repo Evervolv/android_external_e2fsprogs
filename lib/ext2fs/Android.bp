@@ -114,6 +114,10 @@ cc_library {
             cflags: [
                 "-Wno-error=cpp",
                 "-Wno-format",
+                "-Wno-unused-variable",
+            ],
+            clang_cflags: [
+                "-Wno-error=typedef-redefinition",
             ],
             host_ldlibs: ["-lws2_32"],
         },
