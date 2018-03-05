@@ -153,22 +153,23 @@ struct resource_track {
 /*
  * E2fsck options
  */
-#define E2F_OPT_READONLY	0x0001
-#define E2F_OPT_PREEN		0x0002
-#define E2F_OPT_YES		0x0004
-#define E2F_OPT_NO		0x0008
-#define E2F_OPT_TIME		0x0010
-#define E2F_OPT_TIME2		0x0020
-#define E2F_OPT_CHECKBLOCKS	0x0040
-#define E2F_OPT_DEBUG		0x0080
-#define E2F_OPT_FORCE		0x0100
-#define E2F_OPT_WRITECHECK	0x0200
-#define E2F_OPT_COMPRESS_DIRS	0x0400
-#define E2F_OPT_FRAGCHECK	0x0800
-#define E2F_OPT_JOURNAL_ONLY	0x1000 /* only replay the journal */
-#define E2F_OPT_DISCARD		0x2000
-#define E2F_OPT_CONVERT_BMAP	0x4000 /* convert blockmap to extent */
-#define E2F_OPT_FIXES_ONLY	0x8000 /* skip all optimizations */
+#define E2F_OPT_READONLY	0x00001
+#define E2F_OPT_PREEN		0x00002
+#define E2F_OPT_YES		0x00004
+#define E2F_OPT_NO		0x00008
+#define E2F_OPT_TIME		0x00010
+#define E2F_OPT_TIME2		0x00020
+#define E2F_OPT_CHECKBLOCKS	0x00040
+#define E2F_OPT_DEBUG		0x00080
+#define E2F_OPT_FORCE		0x00100
+#define E2F_OPT_WRITECHECK	0x00200
+#define E2F_OPT_COMPRESS_DIRS	0x00400
+#define E2F_OPT_FRAGCHECK	0x00800
+#define E2F_OPT_JOURNAL_ONLY	0x01000 /* only replay the journal */
+#define E2F_OPT_DISCARD		0x02000
+#define E2F_OPT_CONVERT_BMAP	0x04000 /* convert blockmap to extent */
+#define E2F_OPT_FIXES_ONLY	0x08000 /* skip all optimizations */
+#define E2F_OPT_UNSHARE_BLOCKS  0x10000
 
 /*
  * E2fsck flags
