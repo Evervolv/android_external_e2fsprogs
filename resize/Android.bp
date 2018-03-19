@@ -22,3 +22,18 @@ cc_binary {
     ],
     system_shared_libs: ["libc", "libdl"],
 }
+
+cc_library_static {
+    name: "libresize2fs",
+
+    srcs: [
+        "extent.c",
+        "resize2fs.c",
+        "main.c",
+        "online.c",
+        "sim_progress.c",
+        "resource_track.c",
+    ],
+    cflags: ["-W", "-Wall", "-Wno-macro-redefined", "-Dmain=resize2fs_main"],
+    include_dirs: ["external/e2fsprogs/lib"],
+}
