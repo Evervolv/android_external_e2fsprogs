@@ -721,6 +721,9 @@ static void parse_extended_opts(e2fsck_t ctx, const char *opts)
 		} else if (strcmp(token, "fixes_only") == 0) {
 			ctx->options |= E2F_OPT_FIXES_ONLY;
 			continue;
+		} else if (strcmp(token, "unshare_blocks") == 0) {
+			ctx->options |= E2F_OPT_UNSHARE_BLOCKS;
+			continue;
 		} else {
 			fprintf(stderr, _("Unknown extended option: %s\n"),
 				token);
@@ -741,6 +744,7 @@ static void parse_extended_opts(e2fsck_t ctx, const char *opts)
 		fputs(("\tnodiscard\n"), stderr);
 		fputs(("\treadahead_kb=<buffer size>\n"), stderr);
 		fputs(("\tbmap2extent\n"), stderr);
+		fputs(("\tunshare_blocks\n"), stderr);
 		fputc('\n', stderr);
 		exit(1);
 	}
