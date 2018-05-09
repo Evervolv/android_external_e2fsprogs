@@ -104,12 +104,35 @@ static errcode_t add_link(ext2_filsys fs, ext2_ino_t parent_ino,
 	return retval;
 }
 
+/*
+ * Returns mapped UID/GID if there is a corresponding entry in |mapping|.
+ * Otherwise |id| as is.
+ */
+static __u32 resolve_ugid(const struct ugid_map* mapping, __u32 id)
+{
+	size_t i;
+	for (i = 0; i < mapping->size; ++i) {
+		const struct ugid_map_entry* entry = &mapping->entries[i];
+		if (entry->parent_id <= id &&
+		    id < entry->parent_id + entry->length) {
+			return id + entry->child_id - entry->parent_id;
+		}
+	}
+
+	/* No entry is found. */
+	return id;
+}
+
 /* Set the uid, gid, mode and time for the inode */
 static errcode_t set_inode_extra(ext2_filsys fs, ext2_ino_t ino,
+				 const struct ugid_map* uid_map,
+				 const struct ugid_map* gid_map,
 				 struct stat *st)
 {
 	errcode_t		retval;
 	struct ext2_inode	inode;
+	__u32 uid;
+	__u32 gid;
 
 	retval = ext2fs_read_inode(fs, ino, &inode);
         if (retval) {
@@ -117,8 +140,12 @@ static errcode_t set_inode_extra(ext2_filsys fs, ext2_ino_t ino,
 		return retval;
 	}
 
-	inode.i_uid = st->st_uid;
-	inode.i_gid = st->st_gid;
+	uid = resolve_ugid(uid_map, st->st_uid);
+	gid = resolve_ugid(gid_map, st->st_gid);
+	inode.i_uid = (__u16) uid;
+	inode.i_gid = (__u16) gid;
+	ext2fs_set_i_uid_high(inode, (__u16) (uid >> 16));
+	ext2fs_set_i_gid_high(inode, (__u16) (gid >> 16));
 	inode.i_mode |= st->st_mode;
 	inode.i_atime = st->st_atime;
 	inode.i_mtime = st->st_mtime;
@@ -713,6 +740,8 @@ static errcode_t __populate_fs(ext2_filsys fs, ext2_ino_t parent_ino,
 			       const char *source_dir, ext2_ino_t root,
 			       struct hdlinks_s *hdlinks,
 			       struct file_info *target,
+			       const struct ugid_map* uid_map,
+			       const struct ugid_map* gid_map,
 			       struct fs_ops_callbacks *fs_callbacks)
 {
 	const char	*name;
@@ -869,7 +898,8 @@ find_lnf:
 			}
 			/* Populate the dir recursively*/
 			retval = __populate_fs(fs, ino, name, root, hdlinks,
-					       target, fs_callbacks);
+					       target, uid_map, gid_map,
+					       fs_callbacks);
 			if (retval)
 				goto out;
 			if (chdir("..")) {
@@ -891,7 +921,7 @@ find_lnf:
 			goto out;
 		}
 
-		retval = set_inode_extra(fs, ino, &st);
+		retval = set_inode_extra(fs, ino, uid_map, gid_map, &st);
 		if (retval) {
 			com_err(__func__, retval,
 				_("while setting inode for \"%s\""), name);
@@ -949,6 +979,8 @@ out:
 
 errcode_t populate_fs2(ext2_filsys fs, ext2_ino_t parent_ino,
 		       const char *source_dir, ext2_ino_t root,
+		       const struct ugid_map* uid_map,
+		       const struct ugid_map* gid_map,
 		       struct fs_ops_callbacks *fs_callbacks)
 {
 	struct file_info file_info;
@@ -974,7 +1006,7 @@ errcode_t populate_fs2(ext2_filsys fs, ext2_ino_t parent_ino,
 	file_info.path = calloc(file_info.path_max_len, 1);
 
 	retval = __populate_fs(fs, parent_ino, source_dir, root, &hdlinks,
-			       &file_info, fs_callbacks);
+			       &file_info, uid_map, gid_map, fs_callbacks);
 
 	free(file_info.path);
 	free(hdlinks.hdl);
@@ -984,5 +1016,7 @@ errcode_t populate_fs2(ext2_filsys fs, ext2_ino_t parent_ino,
 errcode_t populate_fs(ext2_filsys fs, ext2_ino_t parent_ino,
 		      const char *source_dir, ext2_ino_t root)
 {
-	return populate_fs2(fs, parent_ino, source_dir, root, NULL);
+	const struct ugid_map uid_map = { 0, NULL }, gid_map = { 0, NULL };
+	return populate_fs2(
+		fs, parent_ino, source_dir, root, &uid_map, &gid_map, NULL);
 }
