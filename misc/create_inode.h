@@ -33,11 +33,32 @@ struct fs_ops_callbacks {
 		ext2_ino_t parent_ino, ext2_ino_t root, mode_t mode);
 };
 
+/*
+ * Represents a range of UID/GID mapping.
+ * This maps the id in [|parent_id|, |parent_id| + |length|) into
+ * [|child_id|, |child_id| + |length|)
+ */
+struct ugid_map_entry {
+	unsigned int child_id;
+	unsigned int parent_id;
+	unsigned int length;
+};
+
+struct ugid_map {
+	/* The number of elements in |entries|. */
+	size_t size;
+
+	/* An array of entries. If |size| is 0, this is a null pointer. */
+	struct ugid_map_entry* entries;
+};
+
 /* For populating the filesystem */
 extern errcode_t populate_fs(ext2_filsys fs, ext2_ino_t parent_ino,
 			     const char *source_dir, ext2_ino_t root);
 extern errcode_t populate_fs2(ext2_filsys fs, ext2_ino_t parent_ino,
 			      const char *source_dir, ext2_ino_t root,
+			      const struct ugid_map* uid_map,
+			      const struct ugid_map* gid_map,
 			      struct fs_ops_callbacks *fs_callbacks);
 extern errcode_t do_mknod_internal(ext2_filsys fs, ext2_ino_t cwd,
 				   const char *name, struct stat *st);
