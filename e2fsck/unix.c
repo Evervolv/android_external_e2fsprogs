@@ -1901,6 +1901,14 @@ no_journal:
 		ext2fs_mark_super_dirty(fs);
 	}
 
+	if (ext2fs_has_feature_shared_blocks(ctx->fs->super) &&
+	    (ctx->options & E2F_OPT_UNSHARE_BLOCKS) &&
+	    (ctx->options & E2F_OPT_NO))
+		/* Don't try to write or flush I/O, we just wanted to know whether or
+		 * not there were enough free blocks to undo deduplication.
+		 */
+		goto skip_write;
+
 	e2fsck_write_bitmaps(ctx);
 	if (fs->flags & EXT2_FLAG_DIRTY) {
 		pctx.errcode = ext2fs_flush(ctx->fs);
@@ -1935,6 +1943,8 @@ no_journal:
 			exit_value |= FSCK_REBOOT;
 		}
 	}
+
+skip_write:
 	if (!ext2fs_test_valid(fs) ||
 	    ((exit_value & FSCK_CANCELED) &&
 	     (sb->s_state & EXT2_ERROR_FS))) {
