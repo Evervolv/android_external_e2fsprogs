@@ -50,12 +50,6 @@ static errcode_t ino_add_xattr(ext2_filsys fs, ext2_ino_t ino, const char *name,
 			_("while setting xattrs of inode %u"), ino);
 		goto xattrs_close;
 	}
-	retval = ext2fs_xattrs_write(xhandle);
-	if (retval) {
-		com_err(__func__, retval,
-			_("while writting xattrs of inode %u"), ino);
-		goto xattrs_close;
-	}
 xattrs_close:
 	close_retval = ext2fs_xattrs_close(&xhandle);
 	if (close_retval) {
@@ -153,7 +147,7 @@ static errcode_t set_perms_and_caps(ext2_filsys fs, ext2_ino_t ino,
 		retval = ext2fs_write_inode(fs, ino, &inode);
 		if (retval) {
 			com_err(__func__, retval,
-				_("while writting inode %u"), ino);
+				_("while writing inode %u"), ino);
 			return retval;
 		}
 	}
@@ -204,7 +198,7 @@ static errcode_t set_timestamp(ext2_filsys fs, ext2_ino_t ino,
 	retval = ext2fs_write_inode(fs, ino, &inode);
 	if (retval) {
 		com_err(__func__, retval,
-			_("while writting inode %u"), ino);
+			_("while writing inode %u"), ino);
 		goto end;
 	}
 

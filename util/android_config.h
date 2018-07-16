@@ -1,6 +1,4 @@
-/* work around bug in AndroidConfig.h */
-#ifdef HAVE_MALLOC_H
-#undef HAVE_MALLOC_H
+#ifndef __APPLE__
 #define HAVE_MALLOC_H 1
 #endif
 
@@ -61,7 +59,10 @@
 # define HAVE_LINUX_TYPES_H 1
 # define HAVE_LSEEK64 1
 # define HAVE_LSEEK64_PROTOTYPE 1
+# define HAVE_MNTENT_H 1
 # define HAVE_PREAD64 1
 # define HAVE_PWRITE64 1
+# define HAVE_SETMNTENT 1
 # define HAVE_SYS_PRCTL_H 1
+# define HAVE_SYS_SYSMACROS_H 1
 #endif
