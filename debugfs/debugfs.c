@@ -55,13 +55,15 @@ int sci_idx;
 ext2_filsys	current_fs;
 quota_ctx_t	current_qctx;
 ext2_ino_t	root, cwd;
+int		no_copy_xattrs;
 
 static int debugfs_setup_tdb(const char *device_name, char *undo_file,
 			     io_manager *io_ptr)
 {
 	errcode_t retval = ENOMEM;
-	char *tdb_dir = NULL, *tdb_file = NULL;
-	char *dev_name, *tmp_name;
+	const char	*tdb_dir = NULL;
+	char		*tdb_file = NULL;
+	char		*dev_name, *tmp_name;
 
 	/* (re)open a specific undo file */
 	if (undo_file && undo_file[0] != 0) {
@@ -159,13 +161,8 @@ static void open_filesystem(char *device, int open_flags, blk64_t superblock,
 		}
 	}
 
-	if (catastrophic && (open_flags & EXT2_FLAG_RW)) {
-		com_err(device, 0,
-			"opening read-only because of catastrophic mode");
-		open_flags &= ~EXT2_FLAG_RW;
-	}
 	if (catastrophic)
-		open_flags |= EXT2_FLAG_SKIP_MMP;
+		open_flags |= EXT2_FLAG_SKIP_MMP | EXT2_FLAG_IGNORE_SB_ERRORS;
 
 	if (undo_file) {
 		retval = debugfs_setup_tdb(device, undo_file, &io_ptr);
@@ -173,10 +170,18 @@ static void open_filesystem(char *device, int open_flags, blk64_t superblock,
 			exit(1);
 	}
 
+try_open_again:
 	retval = ext2fs_open(device, open_flags, superblock, blocksize,
 			     io_ptr, &current_fs);
+	if (retval && (retval == EXT2_ET_SB_CSUM_INVALID) &&
+	    !(open_flags & EXT2_FLAG_IGNORE_CSUM_ERRORS)) {
+		open_flags |= EXT2_FLAG_IGNORE_CSUM_ERRORS;
+		printf("Checksum errors in superblock!  Retrying...\n");
+		goto try_open_again;
+	}
 	if (retval) {
-		com_err(device, retval, "while opening filesystem");
+		com_err(debug_prog_name, retval,
+			"while trying to open %s", device);
 		if (retval == EXT2_ET_BAD_MAGIC)
 			check_plausibility(device, CHECK_FS_EXIST, NULL);
 		current_fs = NULL;
@@ -187,14 +192,10 @@ static void open_filesystem(char *device, int open_flags, blk64_t superblock,
 	if (catastrophic)
 		com_err(device, 0, "catastrophic mode - not reading inode or group bitmaps");
 	else {
-		retval = ext2fs_read_inode_bitmap(current_fs);
+		retval = ext2fs_read_bitmaps(current_fs);
 		if (retval) {
-			com_err(device, retval, "while reading inode bitmap");
-			goto errout;
-		}
-		retval = ext2fs_read_block_bitmap(current_fs);
-		if (retval) {
-			com_err(device, retval, "while reading block bitmap");
+			com_err(device, retval,
+				"while reading allocation bitmaps");
 			goto errout;
 		}
 	}
@@ -286,7 +287,7 @@ void do_open_filesys(int argc, char **argv)
 
 print_usage:
 	fprintf(stderr, "%s: Usage: open [-s superblock] [-b blocksize] "
-		"[-d image_filename] [-c] [-i] [-f] [-e] [-D] "
+		"[-d image_filename] [-z undo_file] [-c] [-i] [-f] [-e] [-D] "
 #ifndef READ_ONLY
 		"[-w] "
 #endif
@@ -447,6 +448,17 @@ void do_show_super_stats(int argc, char *argv[])
 		units = "cluster";
 
 	list_super2(current_fs->super, out);
+	if (ext2fs_has_feature_metadata_csum(current_fs->super) &&
+	    !ext2fs_superblock_csum_verify(current_fs,
+					   current_fs->super)) {
+		__u32 orig_csum = current_fs->super->s_checksum;
+
+		ext2fs_superblock_csum_set(current_fs,
+					   current_fs->super);
+		fprintf(out, "Expected Checksum:        0x%08x\n",
+			current_fs->super->s_checksum);
+		current_fs->super->s_checksum = orig_csum;
+	}
 	for (i=0; i < current_fs->group_desc_count; i++)
 		numdirs += ext2fs_bg_used_dirs_count(current_fs, i);
 	fprintf(out, "Directories:              %d\n", numdirs);
@@ -497,7 +509,7 @@ void do_show_super_stats(int argc, char *argv[])
 	close_pager(out);
 	return;
 print_usage:
-	fprintf(stderr, "%s: Usage: show_super [-h]\n", argv[0]);
+	fprintf(stderr, "%s: Usage: show_super_stats [-h]\n", argv[0]);
 }
 
 #ifndef READ_ONLY
@@ -761,41 +773,31 @@ static void dump_inline_data(FILE *out, const char *prefix, ext2_ino_t inode_num
 		fprintf(out, "%sSize of inline data: %zu\n", prefix, size);
 }
 
-static void dump_fast_link(FILE *out, ext2_ino_t inode_num,
-			   struct ext2_inode *inode, const char *prefix)
+static void dump_inline_symlink(FILE *out, ext2_ino_t inode_num,
+				struct ext2_inode *inode, const char *prefix)
 {
-	errcode_t retval = 0;
-	char *buf;
+	errcode_t retval;
+	char *buf = NULL;
 	size_t size;
 
-	if (inode->i_flags & EXT4_INLINE_DATA_FL) {
-		retval = ext2fs_inline_data_size(current_fs, inode_num, &size);
-		if (retval)
-			goto out;
+	retval = ext2fs_inline_data_size(current_fs, inode_num, &size);
+	if (retval)
+		goto out;
 
-		retval = ext2fs_get_memzero(size + 1, &buf);
-		if (retval)
-			goto out;
+	retval = ext2fs_get_memzero(size + 1, &buf);
+	if (retval)
+		goto out;
 
-		retval = ext2fs_inline_data_get(current_fs, inode_num,
-						inode, buf, &size);
-		if (retval)
-			goto out;
-		fprintf(out, "%sFast link dest: \"%.*s\"\n", prefix,
-			(int)size, buf);
+	retval = ext2fs_inline_data_get(current_fs, inode_num,
+					inode, buf, &size);
+	if (retval)
+		goto out;
 
-		retval = ext2fs_free_mem(&buf);
-		if (retval)
-			goto out;
-	} else {
-		size_t sz = EXT2_I_SIZE(inode);
-
-		if (sz > sizeof(inode->i_block))
-			sz = sizeof(inode->i_block);
-		fprintf(out, "%sFast link dest: \"%.*s\"\n", prefix, (int) sz,
-			(char *)inode->i_block);
-	}
+	fprintf(out, "%sFast link dest: \"%.*s\"\n", prefix,
+		(int)size, buf);
 out:
+	if (buf)
+		ext2fs_free_mem(&buf);
 	if (retval)
 		com_err(__func__, retval, "while dumping link destination");
 }
@@ -823,8 +825,8 @@ void internal_dump_inode(FILE *out, const char *prefix,
 	else if (LINUX_S_ISSOCK(inode->i_mode)) i_type = "socket";
 	else i_type = "bad type";
 	fprintf(out, "%sInode: %u   Type: %s    ", prefix, inode_num, i_type);
-	fprintf(out, "%sMode:  %04o   Flags: 0x%x\n",
-		prefix, inode->i_mode & 0777, inode->i_flags);
+	fprintf(out, "%sMode:  0%03o   Flags: 0x%x\n",
+		prefix, inode->i_mode & 07777, inode->i_flags);
 	if (is_large_inode && large_inode->i_extra_isize >= 24) {
 		fprintf(out, "%sGeneration: %u    Version: 0x%08x:%08x\n",
 			prefix, inode->i_generation, large_inode->i_version_hi,
@@ -844,16 +846,15 @@ void internal_dump_inode(FILE *out, const char *prefix,
 		fprintf(out, "%d\n", inode->i_size);
 	if (os == EXT2_OS_HURD)
 		fprintf(out,
-			"%sFile ACL: %d    Directory ACL: %d Translator: %d\n",
+			"%sFile ACL: %d Translator: %d\n",
 			prefix,
-			inode->i_file_acl, LINUX_S_ISDIR(inode->i_mode) ? inode->i_dir_acl : 0,
+			inode->i_file_acl,
 			inode->osd1.hurd1.h_i_translator);
 	else
-		fprintf(out, "%sFile ACL: %llu    Directory ACL: %d\n",
+		fprintf(out, "%sFile ACL: %llu\n",
 			prefix,
 			inode->i_file_acl | ((long long)
-				(inode->osd2.linux2.l_i_file_acl_high) << 32),
-			LINUX_S_ISDIR(inode->i_mode) ? inode->i_dir_acl : 0);
+				(inode->osd2.linux2.l_i_file_acl_high) << 32));
 	if (os != EXT2_OS_HURD)
 		fprintf(out, "%sLinks: %d   Blockcount: %llu\n",
 			prefix, inode->i_links_count,
@@ -922,9 +923,12 @@ void internal_dump_inode(FILE *out, const char *prefix,
 		fprintf(out, "Inode checksum: 0x%08x\n", crc);
 	}
 
-	if (LINUX_S_ISLNK(inode->i_mode) &&
-	    ext2fs_inode_data_blocks(current_fs, inode) == 0)
-		dump_fast_link(out, inode_num, inode, prefix);
+	if (LINUX_S_ISLNK(inode->i_mode) && ext2fs_is_fast_symlink(inode))
+		fprintf(out, "%sFast link dest: \"%.*s\"\n", prefix,
+			(int)EXT2_I_SIZE(inode), (char *)inode->i_block);
+	else if (LINUX_S_ISLNK(inode->i_mode) &&
+		   (inode->i_flags & EXT4_INLINE_DATA_FL))
+		dump_inline_symlink(out, inode_num, inode, prefix);
 	else if (LINUX_S_ISBLK(inode->i_mode) || LINUX_S_ISCHR(inode->i_mode)) {
 		int major, minor;
 		const char *devnote;
@@ -1350,10 +1354,9 @@ void do_modify_inode(int argc, char *argv[])
 	modify_u32(argv[0], "Reserved1", decimal_format, &inode.i_reserved1);
 #endif
 	modify_u32(argv[0], "File acl", decimal_format, &inode.i_file_acl);
-	if (LINUX_S_ISDIR(inode.i_mode))
-		modify_u32(argv[0], "Directory acl", decimal_format, &inode.i_dir_acl);
-	else
-		modify_u32(argv[0], "High 32bits of size", decimal_format, &inode.i_size_high);
+
+	modify_u32(argv[0], "High 32bits of size", decimal_format,
+		   &inode.i_size_high);
 
 	if (os == EXT2_OS_HURD)
 		modify_u32(argv[0], "Translator Block",
@@ -1591,9 +1594,7 @@ void do_unlink(int argc, char *argv[])
 void do_copy_inode(int argc, char *argv[])
 {
 	ext2_ino_t	src_ino, dest_ino;
-	struct ext2_inode inode;
 	unsigned char	buf[4096];
-	int		retval;
 
 	if (common_args_process(argc, argv, 3, 3, "copy_inode",
 				"<source file> <dest_name>", CHECK_FS_RW))
@@ -1678,7 +1679,7 @@ void do_find_free_inode(int argc, char *argv[])
 	char		*tmp;
 
 	if (argc > 3 || (argc>1 && *argv[1] == '?')) {
-		com_err(argv[0], 0, "Usage: find_free_inode [dir] [mode]");
+		com_err(argv[0], 0, "Usage: find_free_inode [dir [mode]]");
 		return;
 	}
 	if (check_fs_open(argv[0]))
@@ -1767,7 +1768,8 @@ void do_mknod(int argc, char *argv[])
 		goto usage;
 
 	st.st_rdev = makedev(major, minor);
-	retval = do_mknod_internal(current_fs, cwd, argv[1], &st);
+	retval = do_mknod_internal(current_fs, cwd, argv[1],
+				   st.st_mode, st.st_rdev);
 	if (retval)
 		com_err(argv[0], retval, 0);
 }
@@ -1790,11 +1792,17 @@ static int release_blocks_proc(ext2_filsys fs, blk64_t *blocknr,
 			       e2_blkcnt_t blockcnt EXT2FS_ATTR((unused)),
 			       blk64_t ref_block EXT2FS_ATTR((unused)),
 			       int ref_offset EXT2FS_ATTR((unused)),
-			       void *private EXT2FS_ATTR((unused)))
+			       void *private)
 {
-	blk64_t	block;
+	blk64_t	block = *blocknr;
+	blk64_t *last_cluster = (blk64_t *)private;
+	blk64_t cluster = EXT2FS_B2C(fs, block);
 
-	block = *blocknr;
+	if (cluster == *last_cluster)
+		return 0;
+
+	*last_cluster = cluster;
+
 	ext2fs_block_alloc_stats2(fs, block, -1);
 	return 0;
 }
@@ -1809,8 +1817,9 @@ static void kill_file_by_inode(ext2_ino_t inode)
 	if (debugfs_write_inode(inode, &inode_buf, 0))
 		return;
 	if (ext2fs_inode_has_valid_blocks2(current_fs, &inode_buf)) {
+		blk64_t last_cluster = 0;
 		ext2fs_block_iterate3(current_fs, inode, BLOCK_FLAG_READ_ONLY,
-				      NULL, release_blocks_proc, NULL);
+				      NULL, release_blocks_proc, &last_cluster);
 	}
 	printf("\n");
 	ext2fs_inode_alloc_stats2(current_fs, inode, -1,
@@ -2088,15 +2097,29 @@ void do_imap(int argc, char *argv[])
 
 void do_idump(int argc, char *argv[])
 {
+	struct ext2_inode_large *inode;
 	ext2_ino_t	ino;
 	unsigned char	*buf;
 	errcode_t	err;
-	int		isize;
+	unsigned int	isize, size, offset = 0;
+	int		c, mode = 0;
 
-	if (common_args_process(argc, argv, 2, 2, argv[0],
-				"<file>", 0))
+	reset_getopt();
+	while ((c = getopt (argc, argv, "bex")) != EOF) {
+		if (mode || c == '?') {
+			com_err(argv[0], 0,
+				"Usage: inode_dump [-b]|[-e] <file>");
+			return;
+		}
+		mode = c;
+	}
+	if (optind != argc-1)
 		return;
-	ino = string_to_inode(argv[1]);
+
+	if (check_fs_open(argv[0]))
+		return;
+
+	ino = string_to_inode(argv[optind]);
 	if (!ino)
 		return;
 
@@ -2110,11 +2133,33 @@ void do_idump(int argc, char *argv[])
 	err = ext2fs_read_inode_full(current_fs, ino,
 				     (struct ext2_inode *)buf, isize);
 	if (err) {
-		com_err(argv[0], err, "while reading inode %d", ino);
+		com_err(argv[0], err, "while reading inode %u", ino);
 		goto err;
 	}
 
-	do_byte_hexdump(stdout, buf, isize);
+	inode = (struct ext2_inode_large *) buf;
+	size = isize;
+	switch (mode) {
+	case 'b':
+		offset = ((char *) (&inode->i_block)) - ((char *) buf);
+		size = sizeof(inode->i_block);
+		break;
+	case 'x':
+	case 'e':
+		if (size <= EXT2_GOOD_OLD_INODE_SIZE) {
+			com_err(argv[0], 0, "No extra space in inode");
+			goto err;
+		}
+		offset = EXT2_GOOD_OLD_INODE_SIZE + inode->i_extra_isize;
+		if (offset > size)
+			goto err;
+		size -= offset;
+		break;
+	}
+	if (mode == 'x')
+		raw_inode_xattr_dump(stdout, buf + offset, size);
+	else
+		do_byte_hexdump(stdout, buf + offset, size);
 err:
 	ext2fs_free_mem(&buf);
 }
@@ -2351,8 +2396,6 @@ void do_dump_mmp(int argc EXT2FS_ATTR((unused)), char *argv[])
 	fprintf(stdout, "device_name: %s\n", mmp_s->mmp_bdevname);
 	fprintf(stdout, "magic: 0x%x\n", mmp_s->mmp_magic);
 	fprintf(stdout, "checksum: 0x%08x\n", mmp_s->mmp_checksum);
-	fprintf(stdout, "MMP is unsupported, please recompile with "
-	                "--enable-mmp\n");
 }
 #else
 void do_dump_mmp(int argc EXT2FS_ATTR((unused)),
@@ -2410,11 +2453,11 @@ int main(int argc, char **argv)
 	int		retval;
 	const char	*usage = 
 		"Usage: %s [-b blocksize] [-s superblock] [-f cmd_file] "
-		"[-R request] [-V] ["
+		"[-R request] [-d data_source_device] [-i] [-n] [-D] [-V] ["
 #ifndef READ_ONLY
 		"[-w] [-z undo_file] "
 #endif
-		"[-c] device]";
+		"[-c]] [device]";
 	int		c;
 	int		open_flags = EXT2_FLAG_SOFTSUPP_FEATURES | EXT2_FLAG_64BITS;
 	char		*request = 0;
