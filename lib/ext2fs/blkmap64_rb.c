@@ -74,15 +74,15 @@ static void print_tree(struct rb_root *root)
 	struct rb_node *node = NULL;
 	struct bmap_rb_extent *ext;
 
-	printf("\t\t\t=================================\n");
+	fprintf(stderr, "\t\t\t=================================\n");
 	node = ext2fs_rb_first(root);
 	for (node = ext2fs_rb_first(root); node != NULL; 
 	     node = ext2fs_rb_next(node)) {
 		ext = node_to_extent(node);
-		printf("\t\t\t--> (%llu -> %llu)\n",
+		fprintf(stderr, "\t\t\t--> (%llu -> %llu)\n",
 			ext->start, ext->start + ext->count);
 	}
-	printf("\t\t\t=================================\n");
+	fprintf(stderr, "\t\t\t=================================\n");
 }
 
 static void check_tree(struct rb_root *root, const char *msg)
@@ -94,35 +94,41 @@ static void check_tree(struct rb_root *root, const char *msg)
 	     node = ext2fs_rb_next(node)) {
 		ext = node_to_extent(node);
 		if (ext->count == 0) {
-			printf("Tree Error: count is zero\n");
-			printf("extent: %llu -> %llu (%llu)\n", ext->start,
-				ext->start + ext->count, ext->count);
+			fprintf(stderr, "Tree Error: count is zero\n");
+			fprintf(stderr, "extent: %llu -> %llu (%llu)\n",
+				ext->start, ext->start + ext->count,
+				ext->count);
 			goto err_out;
 		}
 		if (ext->start + ext->count < ext->start) {
-			printf("Tree Error: start or count is crazy\n");
-			printf("extent: %llu -> %llu (%llu)\n", ext->start,
-				ext->start + ext->count, ext->count);
+			fprintf(stderr,
+				"Tree Error: start or count is crazy\n");
+			fprintf(stderr, "extent: %llu -> %llu (%llu)\n",
+				ext->start, ext->start + ext->count,
+				ext->count);
 			goto err_out;
 		}
 
 		if (old) {
 			if (old->start > ext->start) {
-				printf("Tree Error: start is crazy\n");
-				printf("extent: %llu -> %llu (%llu)\n",
+				fprintf(stderr, "Tree Error: start is crazy\n");
+				fprintf(stderr, "extent: %llu -> %llu (%llu)\n",
 					old->start, old->start + old->count,
 					old->count);
-				printf("extent next: %llu -> %llu (%llu)\n",
+				fprintf(stderr,
+					"extent next: %llu -> %llu (%llu)\n",
 					ext->start, ext->start + ext->count,
 					ext->count);
 				goto err_out;
 			}
 			if ((old->start + old->count) >= ext->start) {
-				printf("Tree Error: extent is crazy\n");
-				printf("extent: %llu -> %llu (%llu)\n",
+				fprintf(stderr,
+					"Tree Error: extent is crazy\n");
+				fprintf(stderr, "extent: %llu -> %llu (%llu)\n",
 					old->start, old->start + old->count,
 					old->count);
-				printf("extent next: %llu -> %llu (%llu)\n",
+				fprintf(stderr,
+					"extent next: %llu -> %llu (%llu)\n",
 					ext->start, ext->start + ext->count,
 					ext->count);
 				goto err_out;
@@ -133,7 +139,7 @@ static void check_tree(struct rb_root *root, const char *msg)
 	return;
 
 err_out:
-	printf("%s\n", msg);
+	fprintf(stderr, "%s\n", msg);
 	print_tree(root);
 	exit(1);
 }
@@ -391,6 +397,9 @@ static int rb_insert_extent(__u64 start, __u64 count,
 	struct bmap_rb_extent *ext;
 	int retval = 0;
 
+	if (count == 0)
+		return 0;
+
 	bp->rcursor_next = NULL;
 	ext = bp->wcursor;
 	if (ext) {
@@ -555,7 +564,7 @@ static int rb_remove_extent(__u64 start, __u64 count,
 			retval = 1;
 			continue;
 		} else {
-			/* modify the last extent in reigon to be removed */
+			/* modify the last extent in region to be removed */
 			ext->count -= ((start + count) - ext->start);
 			ext->start = start + count;
 			retval = 1;

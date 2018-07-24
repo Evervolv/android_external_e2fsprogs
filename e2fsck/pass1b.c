@@ -662,9 +662,11 @@ static int delete_file_block(ext2_filsys fs,
 	if (ext2fs_test_block_bitmap2(ctx->block_dup_map, *block_nr)) {
 		n = dict_lookup(&clstr_dict, INT_TO_VOIDPTR(c));
 		if (n) {
-			p = (struct dup_cluster *) dnode_get(n);
-			if (lc != pb->cur_cluster)
+			if (lc != pb->cur_cluster) {
+				p = (struct dup_cluster *) dnode_get(n);
 				decrement_badcount(ctx, *block_nr, p);
+				pb->dup_blocks++;
+			}
 		} else
 			com_err("delete_file_block", 0,
 			    _("internal error: can't find dup_blk for %llu\n"),
@@ -964,7 +966,7 @@ static errcode_t clone_file(e2fsck_t ctx, ext2_ino_t ino,
 					sizeof(dp->inode), "clone file EA");
 		/*
 		 * If we cloned the EA block, find all other inodes
-		 * which refered to that EA block, and modify
+		 * which referred to that EA block, and modify
 		 * them to point to the new EA block.
 		 */
 		n = dict_lookup(&clstr_dict,
