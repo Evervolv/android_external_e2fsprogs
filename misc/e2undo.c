@@ -81,8 +81,10 @@ struct undo_key_block {
 	__le32 magic;		/* KEYBLOCK_MAGIC number */
 	__le32 crc;		/* block checksum */
 	__le64 reserved;	/* zero */
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 	struct undo_key keys[0];	/* keys, which come immediately after */
+#pragma GCC diagnostic pop
 };
 
 struct undo_key_info {
@@ -115,7 +117,7 @@ static char *undo_file;
 static void usage(void)
 {
 	fprintf(stderr,
-		_("Usage: %s [-f] [-h] [-n] [-v] <transaction file> <filesystem>\n"), prg_name);
+		_("Usage: %s [-f] [-h] [-n] [-o offset] [-v] [-z undo_file] <transaction file> <filesystem>\n"), prg_name);
 	exit(1);
 }
 
