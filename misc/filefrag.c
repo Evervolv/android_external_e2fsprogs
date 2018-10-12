@@ -45,7 +45,9 @@ extern int optind;
 #include <sys/stat.h>
 #include <sys/vfs.h>
 #include <sys/ioctl.h>
+#ifdef HAVE_LINUX_FD_H
 #include <linux/fd.h>
+#endif
 #include <ext2fs/ext2fs.h>
 #include <ext2fs/ext2_types.h>
 #include <ext2fs/fiemap.h>
@@ -535,8 +537,10 @@ int main(int argc, char**argv)
 				char *end;
 				blocksize = strtoul(optarg, &end, 0);
 				if (end) {
+#if __GNUC_PREREQ (7, 0)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
 					switch (end[0]) {
 					case 'g':
 					case 'G':
@@ -553,7 +557,9 @@ int main(int argc, char**argv)
 					default:
 						break;
 					}
+#if __GNUC_PREREQ (7, 0)
 #pragma GCC diagnostic pop
+#endif
 				}
 			} else { /* Allow -b without argument for compat. Remove
 				  * this eventually so "-b {blocksize}" works */
