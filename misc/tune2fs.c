@@ -170,7 +170,8 @@ static __u32 ok_features[3] = {
 		EXT4_FEATURE_RO_COMPAT_QUOTA |
 		EXT4_FEATURE_RO_COMPAT_METADATA_CSUM |
 		EXT4_FEATURE_RO_COMPAT_READONLY |
-		EXT4_FEATURE_RO_COMPAT_PROJECT
+		EXT4_FEATURE_RO_COMPAT_PROJECT |
+		EXT4_FEATURE_RO_COMPAT_VERITY
 };
 
 static __u32 clear_ok_features[3] = {
@@ -291,6 +292,12 @@ static int remove_journal_device(ext2_filsys fs)
 	jsb = (journal_superblock_t *) buf;
 	/* Find the filesystem UUID */
 	nr_users = ntohl(jsb->s_nr_users);
+	if (nr_users > JFS_USERS_MAX) {
+		fprintf(stderr, _("Journal superblock is corrupted, nr_users\n"
+				 "is too high (%d).\n"), nr_users);
+		commit_remove_journal = 1;
+		goto no_valid_journal;
+	}
 
 	if (!journal_user(fs->super->s_uuid, jsb->s_users, nr_users)) {
 		fputs(_("Filesystem's UUID not found on journal device.\n"),
@@ -2118,6 +2125,10 @@ static int parse_extended_opts(ext2_filsys fs, const char *opts)
 			       intv);
 			fs->super->s_mmp_update_interval = intv;
 			ext2fs_mark_super_dirty(fs);
+		} else if (!strcmp(token, "force_fsck")) {
+			fs->super->s_state |= EXT2_ERROR_FS;
+			printf(_("Setting filesystem error flag to force fsck.\n"));
+			ext2fs_mark_super_dirty(fs);
 		} else if (!strcmp(token, "test_fs")) {
 			fs->super->s_flags |= EXT2_FLAGS_TEST_FILESYS;
 			printf("Setting test filesystem flag\n");
@@ -2200,6 +2211,7 @@ static int parse_extended_opts(ext2_filsys fs, const char *opts)
 			"\tmmp_update_interval=<mmp update interval in seconds>\n"
 			"\tstride=<RAID per-disk chunk size in blocks>\n"
 			"\tstripe_width=<RAID stride*data disks in blocks>\n"
+			"\tforce_fsck\n"
 			"\ttest_fs\n"
 			"\t^test_fs\n"));
 		free(buf);
@@ -2849,6 +2861,11 @@ fs_update_journal_user(struct ext2_super_block *sb, __u8 old_uuid[UUID_SIZE])
 	jsb = (journal_superblock_t *) buf;
 	/* Find the filesystem UUID */
 	nr_users = ntohl(jsb->s_nr_users);
+	if (nr_users > JFS_USERS_MAX) {
+		fprintf(stderr, _("Journal superblock is corrupted, nr_users\n"
+				 "is too high (%d).\n"), nr_users);
+		return EXT2_ET_CORRUPT_JOURNAL_SB;
+	}
 
 	j_uuid = journal_user(old_uuid, jsb->s_users, nr_users);
 	if (j_uuid == NULL) {
@@ -3050,6 +3067,7 @@ _("Warning: The journal is dirty. You may wish to replay the journal like:\n\n"
 				ext2fs_close_free(&fs);
 			exit(1);
 		}
+		sb = fs->super;
 	}
 #endif
 
