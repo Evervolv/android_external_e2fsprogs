@@ -1081,6 +1081,38 @@ static errcode_t unix_set_option(io_channel channel, const char *option,
 #define BLKDISCARD		_IO(0x12,119)
 #endif
 
+/*
+ * Try a PUNCH_HOLE to unmap blocks, then BLKDISCARD if that doesn't work.
+ * We prefer PUNCH_HOLE because it invalidates the page cache, even on block
+ * devices.
+ */
+static int __unix_discard(int fd, int is_bdev, off_t offset, off_t len)
+{
+#ifdef BLKDISCARD
+	__u64 range[2];
+#endif
+	int ret = -1;
+
+#if defined(HAVE_FALLOCATE) && defined(FALLOC_FL_PUNCH_HOLE) && defined(FALLOC_FL_KEEP_SIZE)
+	ret = fallocate(fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
+			offset, len);
+	if (ret == 0)
+		return 0;
+#endif
+#ifdef BLKDISCARD
+	if (is_bdev) {
+		range[0] = (__u64)offset;
+		range[1] = (__u64)len;
+
+		ret = ioctl(fd, BLKDISCARD, &range);
+		if (ret == 0)
+			return 0;
+	}
+#endif
+	errno = EOPNOTSUPP;
+	return ret;
+}
+
 static errcode_t unix_discard(io_channel channel, unsigned long long block,
 			      unsigned long long count)
 {
@@ -1091,31 +1123,10 @@ static errcode_t unix_discard(io_channel channel, unsigned long long block,
 	data = (struct unix_private_data *) channel->private_data;
 	EXT2_CHECK_MAGIC(data, EXT2_ET_MAGIC_UNIX_IO_CHANNEL);
 
-	if (channel->flags & CHANNEL_FLAGS_BLOCK_DEVICE) {
-#ifdef BLKDISCARD
-		__u64 range[2];
-
-		range[0] = (__u64)(block) * channel->block_size + data->offset;
-		range[1] = (__u64)(count) * channel->block_size;
-
-		ret = ioctl(data->dev, BLKDISCARD, &range);
-#else
-		goto unimplemented;
-#endif
-	} else {
-#if defined(HAVE_FALLOCATE) && defined(FALLOC_FL_PUNCH_HOLE)
-		/*
-		 * If we are not on block device, try to use punch hole
-		 * to reclaim free space.
-		 */
-		ret = fallocate(data->dev,
-				FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
-				(off_t)(block) * channel->block_size + data->offset,
-				(off_t)(count) * channel->block_size);
-#else
-		goto unimplemented;
-#endif
-	}
+	ret = __unix_discard(data->dev,
+			(channel->flags & CHANNEL_FLAGS_BLOCK_DEVICE),
+			(off_t)(block) * channel->block_size + data->offset,
+			(off_t)(count) * channel->block_size);
 	if (ret < 0) {
 		if (errno == EOPNOTSUPP)
 			goto unimplemented;
@@ -1126,9 +1137,36 @@ unimplemented:
 	return EXT2_ET_UNIMPLEMENTED;
 }
 
+/*
+ * If we know about ZERO_RANGE, try that before we try PUNCH_HOLE because
+ * ZERO_RANGE doesn't unmap preallocated blocks.  We prefer fallocate because
+ * it always invalidates page cache, and libext2fs requires that reads after
+ * ZERO_RANGE return zeroes.
+ */
+static int __unix_zeroout(int fd, off_t offset, off_t len)
+{
+	int ret = -1;
+
+#if defined(HAVE_FALLOCATE) && defined(FALLOC_FL_ZERO_RANGE)
+	ret = fallocate(fd, FALLOC_FL_ZERO_RANGE, offset, len);
+	if (ret == 0)
+		return 0;
+#endif
+#if defined(HAVE_FALLOCATE) && defined(FALLOC_FL_PUNCH_HOLE) && defined(FALLOC_FL_KEEP_SIZE)
+	ret = fallocate(fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
+			offset,  len);
+	if (ret == 0)
+		return 0;
+#endif
+	errno = EOPNOTSUPP;
+	return ret;
+}
+
 /* parameters might not be used if OS doesn't support zeroout */
+#if __GNUC_PREREQ (4, 6)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
 static errcode_t unix_zeroout(io_channel channel, unsigned long long block,
 			      unsigned long long count)
 {
@@ -1142,10 +1180,7 @@ static errcode_t unix_zeroout(io_channel channel, unsigned long long block,
 	if (safe_getenv("UNIX_IO_NOZEROOUT"))
 		goto unimplemented;
 
-	if (channel->flags & CHANNEL_FLAGS_BLOCK_DEVICE) {
-		/* Not implemented until the BLKZEROOUT mess is fixed */
-		goto unimplemented;
-	} else {
+	if (!(channel->flags & CHANNEL_FLAGS_BLOCK_DEVICE)) {
 		/* Regular file, try to use truncate/punch/zero. */
 		struct stat statbuf;
 
@@ -1165,26 +1200,11 @@ static errcode_t unix_zeroout(io_channel channel, unsigned long long block,
 			if (ret)
 				goto err;
 		}
-#if defined(HAVE_FALLOCATE) && (defined(FALLOC_FL_ZERO_RANGE) || \
-	(defined(FALLOC_FL_PUNCH_HOLE) && defined(FALLOC_FL_KEEP_SIZE)))
-#if defined(FALLOC_FL_PUNCH_HOLE) && defined(FALLOC_FL_KEEP_SIZE)
-		ret = fallocate(data->dev,
-				FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
-				(off_t)(block) * channel->block_size + data->offset,
-				(off_t)(count) * channel->block_size);
-		if (ret == 0)
-			goto err;
-#endif
-#ifdef FALLOC_FL_ZERO_RANGE
-		ret = fallocate(data->dev,
-				FALLOC_FL_ZERO_RANGE,
-				(off_t)(block) * channel->block_size + data->offset,
-				(off_t)(count) * channel->block_size);
-#endif
-#else
-		goto unimplemented;
-#endif /* HAVE_FALLOCATE && (ZERO_RANGE || (PUNCH_HOLE && KEEP_SIZE)) */
 	}
+
+	ret = __unix_zeroout(data->dev,
+			(off_t)(block) * channel->block_size + data->offset,
+			(off_t)(count) * channel->block_size);
 err:
 	if (ret < 0) {
 		if (errno == EOPNOTSUPP)
@@ -1195,7 +1215,9 @@ err:
 unimplemented:
 	return EXT2_ET_UNIMPLEMENTED;
 }
+#if __GNUC_PREREQ (4, 6)
 #pragma GCC diagnostic pop
+#endif
 
 static struct struct_io_manager struct_unix_manager = {
 	.magic		= EXT2_ET_MAGIC_IO_MANAGER,

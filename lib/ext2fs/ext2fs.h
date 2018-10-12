@@ -111,9 +111,14 @@ typedef struct struct_ext2_filsys *ext2_filsys;
 #define EXT2FS_UNMARK_ERROR 	1
 #define EXT2FS_TEST_ERROR	2
 
-typedef struct ext2fs_struct_generic_bitmap *ext2fs_generic_bitmap;
-typedef struct ext2fs_struct_generic_bitmap *ext2fs_inode_bitmap;
-typedef struct ext2fs_struct_generic_bitmap *ext2fs_block_bitmap;
+struct ext2fs_struct_generic_bitmap_base {
+	errcode_t		magic;
+	ext2_filsys 		fs;
+};
+
+typedef struct ext2fs_struct_generic_bitmap_base *ext2fs_generic_bitmap;
+typedef struct ext2fs_struct_generic_bitmap_base *ext2fs_inode_bitmap;
+typedef struct ext2fs_struct_generic_bitmap_base *ext2fs_block_bitmap;
 
 #define EXT2_FIRST_INODE(s)	EXT2_FIRST_INO(s)
 
@@ -625,7 +630,8 @@ typedef struct ext2_icount *ext2_icount_t;
 					 EXT4_FEATURE_RO_COMPAT_METADATA_CSUM|\
 					 EXT4_FEATURE_RO_COMPAT_READONLY |\
 					 EXT4_FEATURE_RO_COMPAT_PROJECT |\
-					 EXT4_FEATURE_RO_COMPAT_SHARED_BLOCKS)
+					 EXT4_FEATURE_RO_COMPAT_SHARED_BLOCKS |\
+					 EXT4_FEATURE_RO_COMPAT_VERITY)
 
 /*
  * These features are only allowed if EXT2_FLAG_SOFTSUPP_FEATURES is passed
