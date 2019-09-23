@@ -1552,7 +1552,7 @@ static void PRS(int argc, char *argv[])
 		config_fn[0] = tmp;
 	profile_set_syntax_err_cb(syntax_err_report);
 	retval = profile_init(config_fn, &profile);
-	if (retval == ENOENT) {
+	if (retval == ENOENT && config_fn[0] != tmp) {
 		retval = profile_init(default_files, &profile);
 		if (retval)
 			goto profile_error;
