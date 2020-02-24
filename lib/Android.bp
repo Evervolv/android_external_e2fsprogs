@@ -7,6 +7,7 @@ cc_library_headers {
     name: "libext2-headers",
     host_supported: true,
     recovery_available: true,
+    vendor_available: true,
     target: {
         windows: {
             enabled: true,
