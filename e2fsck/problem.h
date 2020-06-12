@@ -1017,6 +1017,9 @@ struct problem_context {
 /* Encrypted directory entry is too short */
 #define PR_2_BAD_ENCRYPTED_NAME		0x020050
 
+/* Non-unique filename found, but can't rename */
+#define PR_2_NON_UNIQUE_FILE_NO_RENAME	0x020053
+
 /*
  * Pass 3 errors
  */
