@@ -701,6 +701,15 @@ struct problem_context {
 /* Casefold flag set, but file system is missing the casefold feature */
 #define PR_1_CASEFOLD_FEATURE			0x010089
 
+/* Error allocating memory for casefolded directory list */
+#define PR_1_ALLOCATE_CASEFOLDED_DIRLIST	0x01008C
+
+/* Htree directory should use SipHash but does not */
+#define PR_1_HTREE_NEEDS_SIPHASH		0x01008D
+
+/* Htree directory uses SipHash but should not */
+#define PR_1_HTREE_CANNOT_SIPHASH		0x01008E
+
 
 /*
  * Pass 1b errors
@@ -1016,6 +1025,9 @@ struct problem_context {
 
 /* Encrypted directory entry is too short */
 #define PR_2_BAD_ENCRYPTED_NAME		0x020050
+
+/* Non-unique filename found, but can't rename */
+#define PR_2_NON_UNIQUE_FILE_NO_RENAME	0x020053
 
 /*
  * Pass 3 errors
