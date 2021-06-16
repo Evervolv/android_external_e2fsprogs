@@ -155,7 +155,8 @@ int sync_blockdev(kdev_t kdev)
 	return io_channel_flush(io) ? -EIO : 0;
 }
 
-void ll_rw_block(int rw, int op_flags, int nr, struct buffer_head *bhp[])
+void ll_rw_block(int rw, int op_flags EXT2FS_ATTR((unused)), int nr,
+		 struct buffer_head *bhp[])
 {
 	errcode_t retval;
 	struct buffer_head *bh;
@@ -439,7 +440,7 @@ static int ex_len_compar(const void *arg1, const void *arg2)
 	return 0;
 }
 
-static void ex_sort_and_merge(e2fsck_t ctx, struct extent_list *list)
+static void ex_sort_and_merge(struct extent_list *list)
 {
 	blk64_t ex_end;
 	int i, j;
@@ -549,7 +550,7 @@ static int ext4_modify_extent_list(e2fsck_t ctx, struct extent_list *list,
 		list->extents[list->count - 1] = add_ex;
 	}
 
-	ex_sort_and_merge(ctx, list);
+	ex_sort_and_merge(list);
 
 	/* Mark all occupied blocks allocated */
 	for (i = 0; i < list->count; i++)
