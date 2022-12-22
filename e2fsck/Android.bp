@@ -61,6 +61,7 @@ e2fsck_libs = [
 cc_binary {
     name: "e2fsck",
     host_supported: true,
+    recovery_available: true,
     vendor_ramdisk_available: true,
     defaults: ["e2fsck-defaults"],
 
