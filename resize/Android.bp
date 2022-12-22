@@ -33,6 +33,7 @@ cc_defaults {
 cc_binary {
     name: "resize2fs",
     host_supported: true,
+    recovery_available: true,
     vendor_ramdisk_available: true,
     defaults: ["resize2fs-defaults"],
 
