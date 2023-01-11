@@ -119,6 +119,8 @@ cc_library {
         },
         windows: {
             enabled: true,
+            srcs: ["windows_io.c"],
+            exclude_srcs: ["unix_io.c"],
             include_dirs: ["external/e2fsprogs/include/mingw"],
             cflags: [
                 "-Wno-error=cpp",
@@ -126,7 +128,6 @@ cc_library {
                 "-Wno-unused-variable",
                 "-Wno-error=typedef-redefinition",
             ],
-
             host_ldlibs: ["-lws2_32"],
         },
     },
