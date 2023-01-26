@@ -2968,12 +2968,6 @@ try_user:
 	return 0;
 }
 
-// TODO(b/141583541): stop leaks
-const char *__asan_default_options()
-{
-	return "detect_leaks=0";
-}
-
 int main (int argc, char *argv[])
 {
 	errcode_t	retval = 0;
