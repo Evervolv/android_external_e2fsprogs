@@ -90,12 +90,7 @@ cc_binary {
         },
         windows: {
             include_dirs: [ "external/e2fsprogs/include/mingw" ],
-            cflags: [
-                "-D_POSIX",
-                "-D__USE_MINGW_ALARM",
-            ],
             ldflags: ["-static"],
-            host_ldlibs: ["-lws2_32"],
             enabled: true
         },
         android: {
