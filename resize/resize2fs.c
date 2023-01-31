@@ -1116,7 +1116,6 @@ static errcode_t adjust_superblock(ext2_resize_t rfs, blk64_t new_size)
 	ext2_filsys	fs = rfs->new_fs;
 	int		adj = 0;
 	errcode_t	retval;
-	blk64_t		group_block;
 	unsigned long	i;
 	unsigned long	max_group;
 
@@ -1181,8 +1180,6 @@ static errcode_t adjust_superblock(ext2_resize_t rfs, blk64_t new_size)
 		goto errout;
 
 	memset(rfs->itable_buf, 0, fs->blocksize * fs->inode_blocks_per_group);
-	group_block = ext2fs_group_first_block2(fs,
-						rfs->old_fs->group_desc_count);
 	adj = rfs->old_fs->group_desc_count;
 	max_group = fs->group_desc_count - adj;
 	if (rfs->progress) {
@@ -1209,7 +1206,6 @@ static errcode_t adjust_superblock(ext2_resize_t rfs, blk64_t new_size)
 			if (retval)
 				goto errout;
 		}
-		group_block += fs->super->s_blocks_per_group;
 	}
 	io_channel_flush(fs->io);
 	retval = 0;
@@ -1781,11 +1777,11 @@ static errcode_t block_mover(ext2_resize_t rfs)
 					fs->inode_blocks_per_group,
 					&rfs->itable_buf);
 		if (retval)
-			return retval;
+			goto errout;
 	}
 	retval = ext2fs_create_extent_table(&rfs->bmap, 0);
 	if (retval)
-		return retval;
+		goto errout;
 
 	/*
 	 * The first step is to figure out where all of the blocks
@@ -2973,7 +2969,7 @@ blk64_t calculate_minimum_resize_size(ext2_filsys fs, int flags)
 	blk64_t grp, data_needed, last_start;
 	blk64_t overhead = 0;
 	int old_desc_blocks;
-	int flexbg_size = 1 << fs->super->s_log_groups_per_flex;
+	unsigned flexbg_size = 1U << fs->super->s_log_groups_per_flex;
 
 	/*
 	 * first figure out how many group descriptors we need to
