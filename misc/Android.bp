@@ -22,16 +22,13 @@ cc_library {
 
     target: {
         windows: {
-            include_dirs: [ "external/e2fsprogs/include/mingw" ],
             enabled: true,
-            cflags: ["-Wno-unused-variable"],
         },
     },
 
     srcs: [
         "create_inode.c",
     ],
-    cflags: ["-Wno-error=format-extra-args"],
     shared_libs: [
         "libext2fs",
         "libext2_com_err",
@@ -54,12 +51,6 @@ cc_defaults {
         "mk_hugefiles.c",
         "default_profile.c",
     ],
-    cflags: [
-        "-Wno-error=format",
-        "-Wno-error=type-limits",
-        "-Wno-format-extra-args",
-    ],
-
     stl: "libc++_static",
     include_dirs: ["external/e2fsprogs/e2fsck"],
 }
@@ -89,14 +80,8 @@ cc_binary {
             ],
         },
         windows: {
-            include_dirs: [ "external/e2fsprogs/include/mingw" ],
-            cflags: [
-                "-D_POSIX",
-                "-D__USE_MINGW_ALARM",
-            ],
             ldflags: ["-static"],
-            host_ldlibs: ["-lws2_32"],
-            enabled: true
+            enabled: true,
         },
         android: {
             required: [
@@ -111,7 +96,11 @@ cc_binary {
                 "libext2_com_err",
                 "libext2_e2p",
             ],
-            symlinks: ["mkfs.ext2", "mkfs.ext3", "mkfs.ext4"],
+            symlinks: [
+                "mkfs.ext2",
+                "mkfs.ext3",
+                "mkfs.ext4",
+            ],
         },
     },
 }
