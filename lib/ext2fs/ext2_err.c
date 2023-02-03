@@ -8,7 +8,7 @@
 #define N_(a) a
 
 static const char * const text[] = {
-	N_(	"EXT2FS Library version android-t-qpr1-beta-2-gpl-317-gf5bb4815"),
+	N_(	"EXT2FS Library version android-t-qpr1-beta-2-gpl-322-gbb6d46cc"),
 	N_(	"Wrong magic number for ext2_filsys structure"),
 	N_(	"Wrong magic number for badblocks_list structure"),
 	N_(	"Wrong magic number for badblocks_iterate structure"),
