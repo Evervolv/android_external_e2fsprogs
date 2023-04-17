@@ -175,7 +175,7 @@ static __u32 fscrypt_context_to_policy(const void *xattr, size_t xattr_size,
 		struct fscrypt_policy_v1 *policy = &policy_u->v1;
 		const struct fscrypt_context_v1 *ctx = &ctx_u->v1;
 
-		if (xattr_size != sizeof(*ctx))
+		if (xattr_size < sizeof(*ctx))
 			return CORRUPT_ENCRYPTION_POLICY;
 		policy->version = ctx->version;
 		policy->contents_encryption_mode =
@@ -192,7 +192,7 @@ static __u32 fscrypt_context_to_policy(const void *xattr, size_t xattr_size,
 		struct fscrypt_policy_v2 *policy = &policy_u->v2;
 		const struct fscrypt_context_v2 *ctx = &ctx_u->v2;
 
-		if (xattr_size != sizeof(*ctx))
+		if (xattr_size < sizeof(*ctx))
 			return CORRUPT_ENCRYPTION_POLICY;
 		policy->version = ctx->version;
 		policy->contents_encryption_mode =
