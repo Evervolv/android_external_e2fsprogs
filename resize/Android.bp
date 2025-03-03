@@ -49,6 +49,19 @@ cc_binary {
 }
 
 cc_binary {
+    name: "resize2fs.microdroid",
+    defaults: ["resize2fs-defaults"],
+    target: {
+        android: {
+            shared_libs: resize2fs_libs,
+        },
+    },
+    no_full_install: true,
+    stem: "resize2fs",
+    visibility: ["//packages/modules/Virtualization/build/microdroid"],
+}
+
+cc_binary {
     name: "resize2fs_ramdisk",
     stem: "resize2fs",
     static_executable: true,

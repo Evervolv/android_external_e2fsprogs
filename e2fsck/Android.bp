@@ -70,6 +70,20 @@ cc_binary {
 }
 
 cc_binary {
+    name: "e2fsck.microdroid",
+    defaults: ["e2fsck-defaults"],
+    target: {
+        android: {
+            required: ["badblocks"],
+            shared_libs: e2fsck_libs,
+        },
+    },
+    no_full_install: true,
+    stem: "e2fsck",
+    visibility: ["//packages/modules/Virtualization/build/microdroid"],
+}
+
+cc_binary {
     name: "e2fsck_static",
     static_executable: true,
     defaults: ["e2fsck-defaults"],
