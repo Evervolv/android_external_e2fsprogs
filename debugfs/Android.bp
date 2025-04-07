@@ -19,6 +19,7 @@ cc_defaults {
     srcs: [
         "debug_cmds.c",
         "debugfs.c",
+        "do_orphan.c",
         "util.c",
         "ncheck.c",
         "icheck.c",
