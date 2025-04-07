@@ -42,4 +42,10 @@ typedef __u16	__bitwise	__be16;
 typedef __u32	__bitwise	__be32;
 typedef __u64	__bitwise	__be64;
 
+#if defined(__LP64__) || defined(_WIN64)
+# define SIZEOF_TIME_T 8
+#else
+# define SIZEOF_TIME_T 4
+#endif
+
 #endif /* EXT2_ENDIAN_H_ */

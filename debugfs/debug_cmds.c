@@ -417,7 +417,13 @@ static char const * const ssu00075[] = {
     (char const *)0
 };
 extern void do_journal_run __SS_PROTO;
-static ss_request_entry ssu00076[] = {
+static char const * const ssu00076[] = {
+"orphan_inodes",
+    "orphan",
+    (char const *)0
+};
+extern void do_orphan_inodes __SS_PROTO;
+static ss_request_entry ssu00077[] = {
     { ssu00001,
       do_show_debugfs_params,
       "Show debugfs parameters",
@@ -718,7 +724,11 @@ static ss_request_entry ssu00076[] = {
       do_journal_run,
       "Recover the journal",
       0 },
+    { ssu00076,
+      do_orphan_inodes,
+      "List the orphan inodes on the file system",
+      0 },
     { 0, 0, 0, 0 }
 };
 
-ss_request_table debug_cmds = { 2, ssu00076 };
+ss_request_table debug_cmds = { 2, ssu00077 };
