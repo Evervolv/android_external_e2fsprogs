@@ -239,6 +239,7 @@ static void write_image_file(ext2_filsys fs, int fd)
 	struct ext2_image_hdr	hdr;
 	struct stat		st;
 	errcode_t		retval;
+	time_t			now = time(0);
 
 	write_header(fd, NULL, sizeof(struct ext2_image_hdr), fs->blocksize);
 	memset(&hdr, 0, sizeof(struct ext2_image_hdr));
@@ -292,7 +293,12 @@ static void write_image_file(ext2_filsys fs, int fd)
 	}
 	memcpy(hdr.fs_uuid, fs->super->s_uuid, sizeof(hdr.fs_uuid));
 
-	hdr.image_time = ext2fs_cpu_to_le32(time(0));
+	hdr.image_time_lo = ext2fs_cpu_to_le32(now & 0xFFFFFFFF);
+#if (SIZEOF_TIME_T > 4)
+	hdr.image_time_hi = ext2fs_cpu_to_le32(now >> 32);
+#else
+	hdr.image_time_hi = 0;
+#endif
 	write_header(fd, &hdr, sizeof(struct ext2_image_hdr), fs->blocksize);
 }
 
@@ -1370,7 +1376,8 @@ static void write_raw_image_file(ext2_filsys fs, int fd, int type, int flags,
 		    ino == fs->super->s_journal_inum ||
 		    ino == quota_type2inum(USRQUOTA, fs->super) ||
 		    ino == quota_type2inum(GRPQUOTA, fs->super) ||
-		    ino == quota_type2inum(PRJQUOTA, fs->super)) {
+		    ino == quota_type2inum(PRJQUOTA, fs->super) ||
+		    ino == fs->super->s_orphan_file_inum) {
 			retval = ext2fs_block_iterate3(fs, ino,
 					BLOCK_FLAG_READ_ONLY, block_buf,
 					process_dir_block, &pb);
