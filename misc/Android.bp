@@ -29,6 +29,7 @@ cc_library {
 
     srcs: [
         "create_inode.c",
+        "create_inode_libarchive.c",
     ],
     shared_libs: [
         "libext2fs",

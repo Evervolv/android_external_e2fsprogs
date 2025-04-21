@@ -26,7 +26,7 @@
  * This subroutine returns 1 then the caller shouldn't bother with the
  * rest of the pass 4 tests.
  */
-static int disconnect_inode(e2fsck_t ctx, ext2_ino_t i,
+static int disconnect_inode(e2fsck_t ctx, ext2_ino_t i, ext2_ino_t *last_ino,
 			    struct ext2_inode_large *inode)
 {
 	ext2_filsys fs = ctx->fs;
@@ -34,9 +34,12 @@ static int disconnect_inode(e2fsck_t ctx, ext2_ino_t i,
 	__u32 eamagic = 0;
 	int extra_size = 0;
 
-	e2fsck_read_inode_full(ctx, i, EXT2_INODE(inode),
-			       EXT2_INODE_SIZE(fs->super),
-			       "pass4: disconnect_inode");
+	if (*last_ino != i) {
+		e2fsck_read_inode_full(ctx, i, EXT2_INODE(inode),
+				       EXT2_INODE_SIZE(fs->super),
+				       "pass4: disconnect_inode");
+		*last_ino = i;
+	}
 	if (EXT2_INODE_SIZE(fs->super) > EXT2_GOOD_OLD_INODE_SIZE)
 		extra_size = inode->i_extra_isize;
 
@@ -75,6 +78,7 @@ static int disconnect_inode(e2fsck_t ctx, ext2_ino_t i,
 	if (fix_problem(ctx, PR_4_UNATTACHED_INODE, &pctx)) {
 		if (e2fsck_reconnect_file(ctx, i))
 			ext2fs_unmark_valid(fs);
+		*last_ino = 0;
 	} else {
 		/*
 		 * If we don't attach the inode, then skip the
@@ -87,27 +91,43 @@ static int disconnect_inode(e2fsck_t ctx, ext2_ino_t i,
 	return 0;
 }
 
-static void check_ea_inode(e2fsck_t ctx, ext2_ino_t i,
-			   struct ext2_inode_large *inode, __u16 *link_counted)
+/*
+ * This function is called when link_counted is zero. So this may not be
+ * an xattr inode at all. Return immediately if EA_INODE flag is not set.
+ */
+static void check_ea_inode(e2fsck_t ctx, ext2_ino_t i, ext2_ino_t *last_ino,
+			   struct ext2_inode_large *inode, __u16 *link_counted,
+			   ea_value_t actual_refs)
 {
-	__u64 actual_refs = 0;
+	struct problem_context pctx;
 	__u64 ref_count;
 
-	/*
-	 * This function is called when link_counted is zero. So this may not
-	 * be an xattr inode at all. Return immediately if EA_INODE flag is not
-	 * set.
-	 */
-	e2fsck_read_inode_full(ctx, i, EXT2_INODE(inode),
-			       EXT2_INODE_SIZE(ctx->fs->super),
-			       "pass4: check_ea_inode");
-	if (!(inode->i_flags & EXT4_EA_INODE_FL))
-		return;
+	if (*last_ino != i) {
+		e2fsck_read_inode_full(ctx, i, EXT2_INODE(inode),
+				       EXT2_INODE_SIZE(ctx->fs->super),
+				       "pass4: check_ea_inode");
+		*last_ino = i;
+	}
 
-	if (ctx->ea_inode_refs)
-		ea_refcount_fetch(ctx->ea_inode_refs, i, &actual_refs);
-	if (!actual_refs)
+	clear_problem_context(&pctx);
+	pctx.ino = i;
+	pctx.inode = EXT2_INODE(inode);
+
+	/* No references to the inode from xattrs? */
+	if (actual_refs == EA_INODE_NO_REFS) {
+		/*
+		 * No references from directory hierarchy either? Inode will
+		 * will get attached to lost+found so clear EA_INODE_FL.
+		 * Otherwise this is likely a spuriously set flag so clear it.
+		 */
+		if (*link_counted == 0 ||
+		    fix_problem(ctx, PR_4_EA_INODE_SPURIOUS_FLAG, &pctx)) {
+			/* Clear EA_INODE_FL (likely a normal file) */
+			inode->i_flags &= ~EXT4_EA_INODE_FL;
+			e2fsck_write_inode(ctx, i, EXT2_INODE(inode), "pass4");
+		}
 		return;
+	}
 
 	/*
 	 * There are some attribute references, link_counted is now considered
@@ -121,10 +141,6 @@ static void check_ea_inode(e2fsck_t ctx, ext2_ino_t i,
 	 * However, their i_ctime and i_atime should be the same.
 	 */
 	if (ref_count != actual_refs && inode->i_ctime != inode->i_atime) {
-		struct problem_context pctx;
-
-		clear_problem_context(&pctx);
-		pctx.ino = i;
 		pctx.num = ref_count;
 		pctx.num2 = actual_refs;
 		if (fix_problem(ctx, PR_4_EA_INODE_REF_COUNT, &pctx)) {
@@ -180,7 +196,9 @@ void e2fsck_pass4(e2fsck_t ctx)
 	inode = e2fsck_allocate_memory(ctx, inode_size, "scratch inode");
 
 	/* Protect loop from wrap-around if s_inodes_count maxed */
-	for (i=1; i <= fs->super->s_inodes_count && i > 0; i++) {
+	for (i = 1; i <= fs->super->s_inodes_count && i > 0; i++) {
+		ext2_ino_t last_ino = 0;
+		ea_value_t ea_refs;
 		int isdir;
 
 		if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
@@ -192,7 +210,7 @@ void e2fsck_pass4(e2fsck_t ctx)
 					goto errout;
 		}
 		if (i == quota_type2inum(PRJQUOTA, ctx->fs->super) ||
-		    i == EXT2_BAD_INO ||
+		    i == fs->super->s_orphan_file_inum || i == EXT2_BAD_INO ||
 		    (i > EXT2_ROOT_INO && i < EXT2_FIRST_INODE(fs->super)))
 			continue;
 		if (!(ext2fs_test_inode_bitmap2(ctx->inode_used_map, i)) ||
@@ -204,13 +222,19 @@ void e2fsck_pass4(e2fsck_t ctx)
 		ext2fs_icount_fetch(ctx->inode_link_info, i, &link_count);
 		ext2fs_icount_fetch(ctx->inode_count, i, &link_counted);
 
-		if (link_counted == 0) {
-			/*
-			 * link_counted is expected to be 0 for an ea_inode.
-			 * check_ea_inode() will update link_counted if
-			 * necessary.
-			 */
-			check_ea_inode(ctx, i, inode, &link_counted);
+		if (ctx->ea_inode_refs) {
+			ea_refcount_fetch(ctx->ea_inode_refs, i, &ea_refs);
+			if (ea_refs) {
+				/*
+				 * Final consolidation of EA inodes. We either
+				 * decide the inode is fine and set link_counted
+				 * to one, or we decide this is actually a
+				 * normal file and clear EA_INODE flag, or
+				 * decide the inode should just be deleted.
+				 */
+				check_ea_inode(ctx, i, &last_ino, inode,
+					       &link_counted, ea_refs);
+			}
 		}
 
 		if (link_counted == 0) {
@@ -219,7 +243,7 @@ void e2fsck_pass4(e2fsck_t ctx)
 				     fs->blocksize, "bad_inode buffer");
 			if (e2fsck_process_bad_inode(ctx, 0, i, buf))
 				continue;
-			if (disconnect_inode(ctx, i, inode))
+			if (disconnect_inode(ctx, i, &last_ino, inode))
 				continue;
 			ext2fs_icount_fetch(ctx->inode_link_info, i,
 					    &link_count);
@@ -239,8 +263,12 @@ void e2fsck_pass4(e2fsck_t ctx)
 		if (link_counted != link_count) {
 			int fix_nlink = 0;
 
-			e2fsck_read_inode_full(ctx, i, EXT2_INODE(inode),
-					       inode_size, "pass4");
+			if (last_ino != i) {
+				e2fsck_read_inode_full(ctx, i,
+						       EXT2_INODE(inode),
+						       inode_size, "pass4");
+				last_ino = i;
+			}
 			pctx.ino = i;
 			pctx.inode = EXT2_INODE(inode);
 			if ((link_count != inode->i_links_count) && !isdir &&

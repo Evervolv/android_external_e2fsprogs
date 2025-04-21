@@ -12,7 +12,7 @@ const char *mke2fs_default_profile =
   "		features = has_journal\n"
   "	}\n"
   "	ext4 = {\n"
-  "		features = has_journal,extent,huge_file,flex_bg,metadata_csum,64bit,dir_nlink,extra_isize\n"
+  "		features = has_journal,extent,huge_file,flex_bg,metadata_csum,metadata_csum_seed,64bit,dir_nlink,extra_isize,orphan_file\n"
   "	}\n"
   "	small = {\n"
   "		blocksize = 1024\n"
