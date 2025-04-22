@@ -1,6 +1,6 @@
 # This project was upgraded with external_updater.
 # Usage: tools/external_updater/updater.sh update e2fsprogs
-# For more info, check https://cs.android.com/android/platform/superproject/+/master:tools/external_updater/README.md
+# For more info, check https://cs.android.com/android/platform/superproject/main/+/main:tools/external_updater/README.md
 
 name: "e2fsprogs"
 description: "Ext2/3/4 filesystem userspace utilities"
@@ -9,11 +9,11 @@ third_party {
     type: GIT
     value: "https://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git"
   }
-  version: "v1.46.6"
+  version: "v1.47.2"
   license_type: RESTRICTED
   last_upgrade_date {
-    year: 2023
-    month: 3
-    day: 23
+    year: 2025
+    month: 4
+    day: 7
   }
 }
